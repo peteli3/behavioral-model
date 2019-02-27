@@ -646,11 +646,17 @@ void add_new_object(std::unordered_map<std::string, T> *map,
                     const std::string &type_name,
                     const std::string &name, T obj) {
   auto it = map->find(name);
-  if (it != map->end()) {
-    throw json_exception(
-        EFormat() << "Duplicate objects of type '" << type_name
-                  << "' with name '" << name << "'");
-  }
+
+  // TODO
+  // approach 1: make an add_ingress_parser, add_egress_parser
+  // approach 2: somehow check if its PSA
+
+  // XXX : WORKING TO GET PSA UP AND RUNNING - CHANGE THIS LATER
+  // if (it != map->end()) {
+  //   throw json_exception(
+  //       EFormat() << "Duplicate objects of type '" << type_name
+  //                 << "' with name '" << name << "'");
+  // }
   map->emplace(name, std::move(obj));
 }
 
@@ -981,9 +987,13 @@ P4Objects::init_parsers(const Json::Value &cfg_root, InitState *init_state) {
 
   DupIdChecker dup_id_checker("parser");
   const auto &cfg_parsers = cfg_root["parsers"];
+
+  std::cout << "-> looping on potential parsers\n";
   for (const auto &cfg_parser : cfg_parsers) {
     const string parser_name = cfg_parser["name"].asString();
     p4object_id_t parser_id = cfg_parser["id"].asInt();
+
+    std::cout << "-> CHECKING DUP PARSER\n";
     dup_id_checker.add(parser_id);
 
     std::unique_ptr<Parser> parser(
@@ -1292,7 +1302,9 @@ P4Objects::init_parsers(const Json::Value &cfg_root, InitState *init_state) {
     const ParseState *init_state = current_parse_states[init_state_name];
     parser->set_init_state(init_state);
 
+    std::cout << "-> ADDING PARSER\n";
     add_parser(parser_name, std::move(parser));
+    std::cout << "-> ADDING PARSER DONE\n";
   }
 }
 
@@ -2184,32 +2196,48 @@ P4Objects::init_objects(std::istream *is,
 
     init_errors(cfg_root);  // parser errors
 
+    std::cout << "-> INITIALIZING PARSERS\n";
     init_parsers(cfg_root, &init_state);
+    std::cout << "-> DONE INITTING PARSERS\n";
 
     init_deparsers(cfg_root);
+    std::cout << "-> DONE INITTING DE-PARSERS\n";
 
     init_calculations(cfg_root);
+    std::cout << "-> DONE INITTING CALCS\n";
 
     init_counter_arrays(cfg_root);
+    std::cout << "-> DONE INITTING COUNTERS\n";
 
     init_meter_arrays(cfg_root, &init_state);
+    std::cout << "-> DONE INITTING METERS\n";
 
     init_register_arrays(cfg_root);
+    std::cout << "-> DONE INITTING REGS\n";
 
     init_actions(cfg_root);
+    std::cout << "-> DONE INITTING AXNS\n"; // CURRENTLY TRYING TO GET HERE
 
     ageing_monitor = AgeingMonitorIface::make(
         device_id, cxt_id, notifications_transport);
+    std::cout << "-> DONE MAKING AGEING MONITOR INTERFACE\n";
 
     init_pipelines(cfg_root, lookup_factory, &init_state);
+    std::cout << "-> DONE INITTING PIPELINES\n";
 
     init_checksums(cfg_root);
+    std::cout << "-> DONE INITTING CSUMS\n";
 
     learn_engine = LearnEngineIface::make(device_id, cxt_id);
+    std::cout << "-> DONE INITTING LEARN ENGINE\n";
 
     init_learn_lists(cfg_root);
+    std::cout << "-> DONE INITTING LEARN LISTS\n";
 
     init_field_lists(cfg_root);
+    std::cout << "-> DONE INITTING FIELD LISTS\n";
+
+    std::cout << "-> DONE INITTING ALL\n";
 
     // invoke init() for extern instances, we do this at the very end in case
     // init() looks up some object (e.g. RegisterArray) in P4Objects
@@ -2217,7 +2245,10 @@ P4Objects::init_objects(std::istream *is,
       p.second->init();
 
     check_required_fields(required_fields);
+    std::cout << "-> DONE CHECKING REQ FIELDS\n";
+
   } catch (const json_exception &e) {
+    std::cout << "-> JSON EXCEPTION DURING INIT OBJECTS\n";
     outstream << e.msg(verbose_output);
     return 1;
   }
@@ -2706,6 +2737,7 @@ P4Objects::add_action_to_act_prof(const std::string &act_prof_name,
 
 void
 P4Objects::add_parser(const std::string &name, std::unique_ptr<Parser> parser) {
+  outstream << "hello world!\n";
   add_new_object(&parsers, "parser", name, std::move(parser));
 }
 

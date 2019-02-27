@@ -141,6 +141,7 @@ SwitchWContexts::init_objects(std::istream *is, device_id_t dev_id,
 
   device_id = dev_id;
 
+  std::cout << "-> doing some notif transport stuff\n";
   if (!transport) {
     notifications_transport = std::shared_ptr<TransportIface>(
         TransportIface::make_dummy());
@@ -149,10 +150,17 @@ SwitchWContexts::init_objects(std::istream *is, device_id_t dev_id,
   }
 
   for (cxt_id_t cxt_id = 0; cxt_id < nb_cxts; cxt_id++) {
+    std::cout << "-> loopin on context ids now " << cxt_id << "\n";
     auto &cxt = contexts.at(cxt_id);
+
+    std::cout << "-> setting dev id " << cxt_id << "\n";
     cxt.set_device_id(device_id);
+
+    std::cout << "-> setting notif transport " << cxt_id << "\n";
     cxt.set_notifications_transport(notifications_transport);
     if (is != nullptr) {
+
+      std::cout << "-> initting obj for ctxt id: " << cxt_id << "\n";
       status = cxt.init_objects(is, get_lookup_factory(),
                                 required_fields, arith_objects);
       is->clear();
@@ -161,6 +169,8 @@ SwitchWContexts::init_objects(std::istream *is, device_id_t dev_id,
     }
     phv_source->set_phv_factory(cxt_id, &cxt.get_phv_factory());
   }
+
+  std::cout << "-> outta the loop\n";
 
   return 0;
 }
@@ -174,8 +184,10 @@ SwitchWContexts::init_objects(const std::string &json_path, device_id_t dev_id,
     return 1;
   }
 
+  std::cout << "-> initting objects in SwitchWContexts init objects\n";
   int status = init_objects(&fs, dev_id, transport);
   if (status != 0) return status;
+  std::cout << "-> done from SwitchWContexts\n";
 
   {
     std::unique_lock<std::mutex> config_lock(config_mutex);
@@ -199,7 +211,11 @@ SwitchWContexts::init_from_command_line_options(
     std::shared_ptr<TransportIface> my_transport,
     std::unique_ptr<DevMgrIface> my_dev_mgr) {
   OptionsParser parser;
+
+  std::cout << "-> SWITCH init_from_command_line_options - parser\n";
   parser.parse(argc, argv, tp);
+
+  std::cout << "-> SWITCH init_from_command_line_options - moving on\n";
   return init_from_options_parser(parser, my_transport, std::move(my_dev_mgr));
 }
 
@@ -243,10 +259,13 @@ SwitchWContexts::init_from_options_parser(
 
   Logger::set_log_level(parser.log_level);
 
+  std::cout << "-> starting initting objects " << parser.no_p4 << "\n";
   if (parser.no_p4)
     status = init_objects_empty(parser.device_id, transport);
   else
     status = init_objects(parser.config_file_path, parser.device_id, transport);
+
+  std::cout << "-> INIT FROM PARSER INIT OBJECTS STATUS: " << status << "\n";
   if (status != 0) return status;
 
   if (my_dev_mgr != nullptr)

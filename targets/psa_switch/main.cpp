@@ -24,6 +24,11 @@
 #include <bm/bm_runtime/bm_runtime.h>
 #include <bm/bm_sim/target_parser.h>
 
+// debugging
+#include <iostream>
+#include <fstream>
+#include <string>
+
 #include "psa_switch.h"
 
 namespace {
@@ -37,26 +42,42 @@ shared_ptr<PsaSwitchIf> get_handler(PsaSwitch *sw);
 
 int
 main(int argc, char* argv[]) {
+
+  std::cout << "-> PSA MAIN new psa switch\n";
   psa_switch = new PsaSwitch();
+
+  std::cout << "-> PSA MAIN new target parser basic\n";
   psa_switch_parser = new bm::TargetParserBasic();
+
+  std::cout << "-> PSA MAIN init from cmd line\n";
   psa_switch_parser->add_flag_option("enable-swap",
                                         "enable JSON swapping at runtime");
+  std::cout << "-> PSA ADD FLAG OPTION DONE\n";
   int status = psa_switch->init_from_command_line_options(
       argc, argv, psa_switch_parser);
+  std::cout << "-> PSA MAIN init from cmd line EXIT STAT " << status << "\n";
   if (status != 0) std::exit(status);
 
+  std::cout << "-> PSA MAIN enable config swap\n";
   bool enable_swap_flag = false;
   if (psa_switch_parser->get_flag_option("enable-swap", &enable_swap_flag)
       != bm::TargetParserBasic::ReturnCode::SUCCESS)
     std::exit(1);
   if (enable_swap_flag) psa_switch->enable_config_swap();
 
+  std::cout << "-> PSA MAIN get runtime port\n";
   int thrift_port = psa_switch->get_runtime_port();
+
+  std::cout << "-> PSA MAIN start server\n";
   bm_runtime::start_server(psa_switch, thrift_port);
   using ::pswitch_runtime::PsaSwitchIf;
   using ::pswitch_runtime::PsaSwitchProcessor;
+
+  std::cout << "-> PSA MAIN add service switch processor\n";
   bm_runtime::add_service<PsaSwitchIf, PsaSwitchProcessor>(
       "psa_switch", pswitch_runtime::get_handler(psa_switch));
+
+  std::cout << "-> PSA MAIN start and return\n";
   psa_switch->start_and_return();
 
   while (true) std::this_thread::sleep_for(std::chrono::seconds(100));
