@@ -1453,6 +1453,8 @@ void
 P4Objects::init_actions(const Json::Value &cfg_root) {
   DupIdChecker dup_id_checker("action");
   const Json::Value &cfg_actions = cfg_root["actions"];
+
+  std::cout << "-> looping on potential axn\n";
   for (const auto &cfg_action : cfg_actions) {
     const string action_name = cfg_action["name"].asString();
     p4object_id_t action_id = cfg_action["id"].asInt();
@@ -1461,10 +1463,12 @@ P4Objects::init_actions(const Json::Value &cfg_root) {
         action_name, action_id, cfg_action["runtime_data"].size(),
         object_source_info(cfg_action)));
 
+    std::cout << "-> looping on axn primitives\n";
     const auto &cfg_primitive_calls = cfg_action["primitives"];
     for (const auto &cfg_primitive_call : cfg_primitive_calls)
       add_primitive_to_action(cfg_primitive_call, action_fn.get());
 
+    std::cout << "-> ADDING ACTION\n";
     add_action(action_id, std::move(action_fn));
   }
 }

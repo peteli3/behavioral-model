@@ -80,6 +80,7 @@ main(int argc, char* argv[]) {
   std::cout << "-> PSA MAIN start and return\n";
   psa_switch->start_and_return();
 
+  std::cout << "-> PSA MAIN THREAD SLEEP LOOP\n";
   while (true) std::this_thread::sleep_for(std::chrono::seconds(100));
 
   return 0;
