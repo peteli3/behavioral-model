@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <mutex>
 #include <string>
 
 #include "psa_switch.h"
@@ -65,6 +66,38 @@ REGISTER_HASH(bmv2_hash);
 extern int import_primitives();
 
 packet_id_t PsaSwitch::packet_id = 0;
+
+// XXX: work these in
+// class PsaSwitch::MirroringSessions {
+// public:
+//   bool add_session(mirror_id_t mirror_id),
+//                    const MirroringSessionConfig &config) {
+//     Lock lock(mutex);
+//     sessions_map[mirror_id] = config;
+//     return true;
+//   }
+//
+//   bool delete_session(mirror_id_t mirror_id) {
+//     Lock lock(mutex);
+//     return sessions_map.erase(mirror_id) == 1;
+//   }
+//
+//   bool get_session(mirror_id_t mirror_id,
+//                    MirroringSessionConfig *config) const {
+//     Lock lock(mutex);
+//     auto it = sessions_map.find(mirror_id);
+//     if (it == sessions_map.end()) return false;
+//     *config = it->second;
+//     return true;
+//   }
+//
+// private:
+//   using Mutex = std::mutex;
+//   using Lock = std::lock_guard<Mutex>;
+//
+//   mutable std::mutex mutex;
+//   std::unordered_map<mirror_id_t, MirroringSessionConfig> sessions_map;
+// };
 
 PsaSwitch::PsaSwitch(port_t max_port, bool enable_swap)
   : Switch(enable_swap),

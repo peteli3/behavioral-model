@@ -72,6 +72,14 @@ class PsaSwitch : public Switch {
   using TransmitFn = std::function<void(port_t, packet_id_t,
                                         const char *, int)>;
 
+  // XXX: work this in
+  // struct MirroringSessionConfig {
+  //   port_t egress_port;
+  //   bool egress_port_valid;
+  //   unsigned int mgid;
+  //   bool mgid_valid;
+  // };
+
  private:
   using clock = std::chrono::high_resolution_clock;
 
@@ -91,6 +99,15 @@ class PsaSwitch : public Switch {
     mirroring_map[mirror_id] = egress_port;
     return 0;
   }
+
+  // XXX: work these in
+  // bool mirroring_add_session(mirror_id_t mirror_id,
+  //                            const MirroringSessionConfig &config);
+  //
+  // bool mirroring_delete_session(mirror_id_t mirror_id);
+  //
+  // bool mirroring_get_session(mirror_id_t mirror_id,
+  //                            MirroringSessionConfig *config) const;
 
   int mirroring_mapping_delete(mirror_id_t mirror_id) {
     return mirroring_map.erase(mirror_id);
@@ -122,6 +139,9 @@ class PsaSwitch : public Switch {
  private:
   static constexpr size_t nb_egress_threads = 4u;
   static packet_id_t packet_id;
+
+  // XXX: work this in
+  // class MirroringSessions;
 
   enum PktInstanceType {
     PKT_INSTANCE_TYPE_NORMAL,
