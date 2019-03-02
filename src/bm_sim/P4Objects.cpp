@@ -647,16 +647,11 @@ void add_new_object(std::unordered_map<std::string, T> *map,
                     const std::string &name, T obj) {
   auto it = map->find(name);
 
-  // TODO
-  // approach 1: make an add_ingress_parser, add_egress_parser
-  // approach 2: somehow check if its PSA
-
-  // XXX : WORKING TO GET PSA UP AND RUNNING - CHANGE THIS LATER
-  // if (it != map->end()) {
-  //   throw json_exception(
-  //       EFormat() << "Duplicate objects of type '" << type_name
-  //                 << "' with name '" << name << "'");
-  // }
+  if (it != map->end()) {
+    throw json_exception(
+        EFormat() << "Duplicate objects of type '" << type_name
+                  << "' with name '" << name << "'");
+  }
   map->emplace(name, std::move(obj));
 }
 
@@ -2245,9 +2240,11 @@ P4Objects::init_objects(std::istream *is,
 
     // invoke init() for extern instances, we do this at the very end in case
     // init() looks up some object (e.g. RegisterArray) in P4Objects
+    std::cout << "now initting extern instances\n";
     for (const auto &p : extern_instances)
       p.second->init();
 
+    std::cout << "now checking req'd fields\n";
     check_required_fields(required_fields);
     std::cout << "-> DONE CHECKING REQ FIELDS\n";
 
@@ -2447,6 +2444,7 @@ P4Objects::check_required_fields(
           EFormat() << "Field " << p.first << "." << p.second
                     << " is required by switch target but is not defined");
     }
+    std::cout << "Field " << p.first << "." << p.second << " found!\n";
   }
   return res;
 }
