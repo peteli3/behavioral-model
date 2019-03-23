@@ -150,13 +150,14 @@ PsaSwitch::receive_(port_t port_num, const char *buffer, int len) {
 
   // setting standard metadata
 
-  phv->get_field("standard_metadata.ingress_port").set(port_num);
+  phv->get_field("psa_ingress_parser_input_metadata.ingress_port").set(port_num);
+  phv->get_field("psa_ingress_parser_input_metadata.packet_path").set(PKT_INSTANCE_TYPE_NORMAL);
   // using packet register 0 to store length, this register will be updated for
   // each add_header / remove_header primitive call
-  packet->set_register(PACKET_LENGTH_REG_IDX, len);
-  phv->get_field("standard_metadata.packet_length").set(len);
-  Field &f_instance_type = phv->get_field("standard_metadata.instance_type");
-  f_instance_type.set(PKT_INSTANCE_TYPE_NORMAL);
+//   packet->set_register(PACKET_LENGTH_REG_IDX, len);
+//   phv->get_field("standard_metadata.packet_length").set(len);
+//   Field &f_instance_type = phv->get_field("standard_metadata.instance_type");
+//   f_instance_type.set(PKT_INSTANCE_TYPE_NORMAL);
 
   if (phv->has_field("intrinsic_metadata.ingress_global_timestamp")) {
     phv->get_field("intrinsic_metadata.ingress_global_timestamp")
