@@ -258,16 +258,17 @@ PsaSwitch::transmit_thread() {
   while (1) {
     std::unique_ptr<Packet> packet;
     output_buffer.pop_back(&packet);
-    std::cout << "TRANSMIT THREAD -> just got packet from buffer";
+    std::cout << "TRANSMIT THREAD -> just got packet from buffer\n";
 
     if (packet == nullptr) break;
     BMELOG(packet_out, *packet);
     BMLOG_DEBUG_PKT(*packet, "Transmitting packet of size {} out of port {}",
                     packet->get_data_size(), packet->get_egress_port());
 
-    std::cout << "TRANSMIT THREAD -> sending packet out now";
+    std::cout << "TRANSMIT THREAD -> sending packet out now\n";
     my_transmit_fn(packet->get_egress_port(), packet->get_packet_id(),
                    packet->data(), packet->get_data_size());
+    std::cout << "TRANSMIT THREAD -> sent now! done done\n";
   }
 }
 
@@ -521,7 +522,7 @@ PsaSwitch::egress_thread(size_t worker_id) {
 
     phv = packet->get_phv();
 
-    std::cout << "EGRESS THREAD -> just got phv - doing some stuff now";
+    std::cout << "EGRESS THREAD -> just got phv - doing some stuff now\n";
 
 //     if (with_queueing_metadata) {
 //       auto enq_timestamp =
@@ -604,7 +605,7 @@ PsaSwitch::egress_thread(size_t worker_id) {
 //       }
 //     }
 
-    std::cout << "EGRESS THREAD -> pushing to output buffer now";
+    std::cout << "EGRESS THREAD -> pushing to output buffer now\n";
     output_buffer.push_front(std::move(packet));
   }
 }
