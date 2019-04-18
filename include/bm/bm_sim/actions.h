@@ -95,6 +95,7 @@ class Packet;
 class NamedCalculation;
 class MeterArray;
 class CounterArray;
+class ExternCounter;
 
 // forward declaration of ActionPrimitive_
 class ActionPrimitive_;
@@ -230,6 +231,8 @@ struct ActionParam {
 
     // non owning pointer
     CounterArray *counter_array;
+
+    ExternCounter *extern_counter;
 
     // non owning pointer
     RegisterArray *register_array;
@@ -418,6 +421,19 @@ template <> inline
 const MeterArray &ActionParam::to<const MeterArray &>(
     ActionEngineState *state) const {
   return ActionParam::to<MeterArray &>(state);
+}
+
+template <> inline
+ExternCounter &ActionParam::to<ExternCounter &>(ActionEngineState *state) const {
+  (void) state;
+  std::cout << "Sdfasdfasdf" << std::endl;
+  return *(extern_counter);
+}
+
+template <> inline
+const ExternCounter &ActionParam::to<const ExternCounter &>(
+    ActionEngineState *state) const {
+  return ActionParam::to<ExternCounter &>(state);
 }
 
 template <> inline

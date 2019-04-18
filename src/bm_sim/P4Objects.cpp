@@ -504,6 +504,7 @@ P4Objects::add_primitive_to_action(const Json::Value &cfg_primitive,
     } else if (type == "extern") {
       const auto name = cfg_parameter["value"].asString();
       auto extern_instance = get_extern_instance_cfg(name);
+      std::cout << "adding extern to action\n";
       action_fn->parameter_push_back_extern_instance(extern_instance);
     } else if (type == "string") {
       action_fn->parameter_push_back_string(cfg_parameter["value"].asString());
@@ -890,6 +891,7 @@ P4Objects::init_header_union_stacks(const Json::Value &cfg_root,
 
 void
 P4Objects::init_extern_instances(const Json::Value &cfg_root) {
+  BM_REGISTER_EXTERN(ExternCounter);
   DupIdChecker dup_id_checker("extern");
   const Json::Value &cfg_extern_instances = cfg_root["extern_instances"];
   for (const auto &cfg_extern_instance : cfg_extern_instances) {
