@@ -908,6 +908,7 @@ P4Objects::init_extern_instances(const Json::Value &cfg_root) {
                     << extern_type_name << "'",
           cfg_extern_instance);
     }
+    std::cout << "Created an extern of type: " << extern_type_name << std::endl;
 
     instance->_register_attributes();
 
@@ -926,6 +927,7 @@ P4Objects::init_extern_instances(const Json::Value &cfg_root) {
                       << "' has no attribute '" << name << "'",
             cfg_extern_attribute);
       }
+      std::cout << "Preparing to load: " << name << "{" << type << "}\n";
 
       if (type == "hexstr") {
         const string value_hexstr = cfg_extern_attribute["value"].asString();
@@ -948,10 +950,10 @@ P4Objects::init_extern_instances(const Json::Value &cfg_root) {
                              " attribute initialization", cfg_extern_attribute);
       }
     }
+    std::cout << "there are none?\n";
 
     // needs to be set before the call to init!
     instance->_set_p4objects(this);
-
     add_extern_instance(extern_instance_name, std::move(instance));
   }
 }
