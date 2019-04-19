@@ -311,7 +311,7 @@ REGISTER_PRIMITIVE(execute_meter);
 class count : public ActionPrimitive<ExternCounter &, const Data &> {
   void operator ()(ExternCounter &counter_array, const Data &idx) {
     auto i = idx.get_uint();
-/*#ifndef NDEBUG
+#ifndef NDEBUG
     std::cout << "-------\n" << std::endl;
     std::cout << counter_array.size() << std::endl;
     if (i >= counter_array.size()) {
@@ -327,7 +327,6 @@ class count : public ActionPrimitive<ExternCounter &, const Data &> {
     BMLOG_TRACE_PKT(get_packet(),
                     "Updated counter '{}' at index {}",
                     counter_array.get_name(), i);
-                    */
     std::cout << "trying to use primitive extern counter\n";
   }
 };

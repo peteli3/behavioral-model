@@ -17,7 +17,11 @@ namespace bm {
         ERROR
       };
 
-      void increment_counter(const Packet &pkt);
+      void increment_counter(const Packet &pkt){
+        bytes += pkt.get_ingress_length();
+        packets += 1;
+        std::cout << "??????\n" << std::endl;
+      };
       CounterErrorCode query_counter(counter_value_t *bytes,
                                      counter_value_t *packets) const;
       CounterErrorCode reset_counter();

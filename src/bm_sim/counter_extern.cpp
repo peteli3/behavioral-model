@@ -24,12 +24,6 @@
 
 namespace bm {
 
-void
-PSA_Counter::increment_counter(const Packet &pkt) {
-  bytes += pkt.get_ingress_length();
-  packets += 1;
-}
-
 PSA_Counter::CounterErrorCode
 PSA_Counter::query_counter(counter_value_t *bytes, counter_value_t *packets) const {
   *bytes = this->bytes;
