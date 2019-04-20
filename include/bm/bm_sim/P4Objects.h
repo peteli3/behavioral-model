@@ -49,6 +49,7 @@
 #include "enums.h"
 #include "control_action.h"
 #include "device_id.h"
+#include "counter_extern.h"
 
 // forward declaration of Json::Value
 namespace Json {

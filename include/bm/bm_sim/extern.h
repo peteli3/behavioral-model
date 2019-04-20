@@ -36,6 +36,7 @@ namespace bm {
 
 class P4Objects;
 class ExternType;
+class ExternCounter;
 
 class ExternFactoryMap {
  public:

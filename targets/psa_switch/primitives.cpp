@@ -26,6 +26,7 @@
 #include <bm/bm_sim/packet.h>
 #include <bm/bm_sim/phv.h>
 #include <bm/bm_sim/logger.h>
+#include <bm/bm_sim/counter_extern.h>
 
 #include <random>
 #include <thread>
@@ -41,6 +42,7 @@ using bm::CounterArray;
 using bm::RegisterArray;
 using bm::NamedCalculation;
 using bm::HeaderStack;
+using bm::ExternCounter;
 
 class modify_field : public ActionPrimitive<Data &, const Data &> {
   void operator ()(Data &dst, const Data &src) {
@@ -306,10 +308,12 @@ class execute_meter
 
 REGISTER_PRIMITIVE(execute_meter);
 
-class count : public ActionPrimitive<CounterArray &, const Data &> {
-  void operator ()(CounterArray &counter_array, const Data &idx) {
+class count : public ActionPrimitive<ExternCounter &, const Data &> {
+  void operator ()(ExternCounter &counter_array, const Data &idx) {
     auto i = idx.get_uint();
 #ifndef NDEBUG
+    std::cout << "-------\n" << std::endl;
+    std::cout << counter_array.size() << std::endl;
     if (i >= counter_array.size()) {
         BMLOG_ERROR_PKT(get_packet(),
                         "Attempted to update counter '{}' with size {}"
@@ -323,6 +327,7 @@ class count : public ActionPrimitive<CounterArray &, const Data &> {
     BMLOG_TRACE_PKT(get_packet(),
                     "Updated counter '{}' at index {}",
                     counter_array.get_name(), i);
+    std::cout << "trying to use primitive extern counter\n";
   }
 };
 
