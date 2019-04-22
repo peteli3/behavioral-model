@@ -528,6 +528,20 @@ Context::read_counters(const std::string &counter_name, size_t idx,
 }
 
 Counter::CounterErrorCode
+Context::read_psa_counters(const std::string &counter_name, size_t idx,
+                       MatchTableAbstract::counter_value_t *bytes,
+                       MatchTableAbstract::counter_value_t *packets) {
+  boost::shared_lock<boost::shared_mutex> lock(request_mutex);
+  ExternType *counter_array = p4objects_rt->get_extern_instance_rt(
+      counter_name);
+  if (!counter_array) return Counter::INVALID_COUNTER_NAME;
+  PSA_Counter *counter = reinterpret_cast<PSA_Counter *>(counter_array);
+  if (idx >= counter->size()) return Counter::INVALID_INDEX;
+  (counter)->get_counter(idx).query_counter(bytes, packets);
+  return Counter::CounterErrorCode::SUCCESS;
+}
+
+Counter::CounterErrorCode
 Context::reset_counters(const std::string &counter_name) {
   boost::shared_lock<boost::shared_mutex> lock(request_mutex);
   CounterArray *counter_array = p4objects_rt->get_counter_array_rt(
@@ -547,6 +561,21 @@ Context::write_counters(const std::string &counter_name, size_t idx,
   if (idx >= counter_array->size()) return Counter::INVALID_INDEX;
   return (*counter_array)[idx].write_counter(bytes, packets);
 }
+
+Counter::CounterErrorCode
+Context::write_psa_counters(const std::string &counter_name, size_t idx,
+                        MatchTableAbstract::counter_value_t bytes,
+                        MatchTableAbstract::counter_value_t packets) {
+  boost::shared_lock<boost::shared_mutex> lock(request_mutex);
+  ExternType *counter_array = p4objects_rt->get_extern_instance_rt(
+      counter_name);
+  if (!counter_array) return Counter::INVALID_COUNTER_NAME;
+  PSA_Counter *counter = reinterpret_cast<PSA_Counter *>(counter_array);
+  if (idx >= counter->size()) return Counter::INVALID_INDEX;
+  (counter)->get_counter(idx).write_counter(bytes, packets);
+  return Counter::CounterErrorCode::SUCCESS;
+}
+
 
 Context::MeterErrorCode
 Context::meter_array_set_rates(

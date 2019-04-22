@@ -890,6 +890,7 @@ P4Objects::init_header_union_stacks(const Json::Value &cfg_root,
 
 void
 P4Objects::init_extern_instances(const Json::Value &cfg_root) {
+  BM_REGISTER_EXTERN_TYPE(PSA_Counter);
   DupIdChecker dup_id_checker("extern");
   const Json::Value &cfg_extern_instances = cfg_root["extern_instances"];
   for (const auto &cfg_extern_instance : cfg_extern_instances) {
@@ -949,7 +950,6 @@ P4Objects::init_extern_instances(const Json::Value &cfg_root) {
 
     // needs to be set before the call to init!
     instance->_set_p4objects(this);
-
     add_extern_instance(extern_instance_name, std::move(instance));
   }
 }
