@@ -337,6 +337,23 @@ PsaSwitch::ingress_thread() {
     parser->parse(packet.get());
     ingress_mau->apply(packet.get());
 
+    // RESUBMIT
+    if (phv->has_field("psa_ingress_output_metadata.resubmit")) {
+      Field &f_resubmit = phv->get_field("psa_ingress_output_metadata.resubmit");
+      if (f_resubmit.get_int()) {
+        BMLOG_DEBUG_PKT(*packet, "Resubmitting packet");
+        // get the packet ready for being parsed again at the beginning of
+        // ingress
+        // packet->restore_buffer_state(packet_in_state);
+        f_resubmit.set(0);
+         phv->get_field("psa_ingress_parser_input_metadata.packet_path").set(5);
+        // std::cout << "hello"<< std::endl;
+        input_buffer.push_front(
+            std::move(packet));
+        continue;
+      }
+    }
+
     // Handling multicast
     unsigned int mgid = 0u;
     if (phv->has_field("psa_ingress_output_metadata.multicast_group")) {
