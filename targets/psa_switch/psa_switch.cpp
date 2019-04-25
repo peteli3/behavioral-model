@@ -344,10 +344,8 @@ PsaSwitch::ingress_thread() {
         BMLOG_DEBUG_PKT(*packet, "Resubmitting packet");
         // get the packet ready for being parsed again at the beginning of
         // ingress
-        // packet->restore_buffer_state(packet_in_state);
         f_resubmit.set(0);
          phv->get_field("psa_ingress_parser_input_metadata.packet_path").set(5);
-        // std::cout << "hello"<< std::endl;
         input_buffer.push_front(
             std::move(packet));
         continue;
