@@ -122,6 +122,14 @@ PsaSwitch::PsaSwitch(port_t max_port, bool enable_swap)
 
   add_required_field("psa_egress_deparser_input_metadata", "egress_port");
 
+  force_arith_header("psa_ingress_parser_input_metadata");
+  force_arith_header("psa_ingress_input_metadata");
+  force_arith_header("psa_ingress_output_metadata");
+  force_arith_header("psa_egress_parser_input_metadata");
+  force_arith_header("psa_egress_input_metadata");
+  force_arith_header("psa_egress_output_metadata");
+  force_arith_header("psa_egress_deparser_input_metadata");
+
   import_primitives();
 }
 
@@ -151,7 +159,7 @@ PsaSwitch::receive_(port_t port_num, const char *buffer, int len) {
   // setting standard metadata
 
   phv->get_field("psa_ingress_parser_input_metadata.ingress_port").set(port_num);
-  phv->get_field("psa_ingress_parser_input_metadata.packet_path").set(PKT_INSTANCE_TYPE_NORMAL);
+  phv->get_field("psa_ingress_parser_input_metadata.packet_path").set(NORMAL);
   // using packet register 0 to store length, this register will be updated for
   // each add_header / remove_header primitive call
    packet->set_register(PACKET_LENGTH_REG_IDX, len);
@@ -159,10 +167,10 @@ PsaSwitch::receive_(port_t port_num, const char *buffer, int len) {
 //   Field &f_instance_type = phv->get_field("standard_metadata.instance_type");
 //   f_instance_type.set(PKT_INSTANCE_TYPE_NORMAL);
 
-  if (phv->has_field("intrinsic_metadata.ingress_global_timestamp")) {
-    phv->get_field("intrinsic_metadata.ingress_global_timestamp")
-        .set(get_ts().count());
-  }
+  // if (phv->has_field("intrinsic_metadata.ingress_global_timestamp")) {
+  //   phv->get_field("intrinsic_metadata.ingress_global_timestamp")
+  //       .set(get_ts().count());
+  // }
 
   input_buffer.push_front(std::move(packet));
   return 0;
@@ -297,17 +305,18 @@ PsaSwitch::enqueue(port_t egress_port, std::unique_ptr<Packet> &&packet) {
 }
 
 // used for ingress cloning, resubmit
-void
-PsaSwitch::copy_field_list_and_set_type(
-    const std::unique_ptr<Packet> &packet,
-    const std::unique_ptr<Packet> &packet_copy,
-    PktInstanceType copy_type, p4object_id_t field_list_id) {
-  PHV *phv_copy = packet_copy->get_phv();
-  phv_copy->reset_metadata();
-  FieldList *field_list = this->get_field_list(field_list_id);
-  field_list->copy_fields_between_phvs(phv_copy, packet->get_phv());
-  phv_copy->get_field("standard_metadata.instance_type").set(copy_type);
-}
+// void
+// PsaSwitch::copy_field_list_and_set_type(
+//     const std::unique_ptr<Packet> &packet,
+//     const std::unique_ptr<Packet> &packet_copy,
+//     PktInstanceType copy_type, p4object_id_t field_list_id) {
+//   PHV *phv_copy = packet_copy->get_phv();
+//   phv_copy->reset_metadata();
+//   FieldList *field_list = this->get_field_list(field_list_id);
+//   field_list->copy_fields_between_phvs(phv_copy, packet->get_phv());
+//   phv_copy->get_field("standard_metadata.instance_type").set(copy_type);
+// }
+
 
 void
 PsaSwitch::check_queueing_metadata() {
@@ -345,23 +354,74 @@ PsaSwitch::ingress_thread() {
                     ingress_port);
 
     parser->parse(packet.get());
+
+    // passing metadata
+    if (phv->has_field("psa_ingress_input_metadata.ingress_port")) {
+      phv->get_field("psa_ingress_input_metadata.ingress_port").set(ingress_port);
+    }
+
+    if (phv->has_field("psa_ingress_input_metadata.packet_path")) {
+      phv->get_field("psa_ingress_input_metadata.packet_path").set(
+          phv->get_field("psa_ingress_parser_input_metadata.packet_path"));
+    }
+
+    // NOT SURE THIS IS CORRECT!!!
+    if (phv->has_field("psa_ingress_input_metadata.parser_error")) {
+      phv->get_field("psa_ingress_input_metadata.parser_error").set(
+          packet->get_error_code().get());
+    }
+
+    if (phv->has_field("psa_ingress_input_metadata.ingress_timestamp")) {
+      phv->get_field("psa_ingress_input_metadata.ingress_timestamp")
+          .set(get_ts().count());
+    }
+
+//     struct psa_ingress_output_metadata_t {
+//   // The comment after each field specifies its initial value when the
+//   // Ingress control block begins executing.
+//   ClassOfService_t         class_of_service; // 0
+//   bool                     clone;            // false
+//   CloneSessionId_t         clone_session_id; // initial value is undefined
+//   bool                     drop;             // true
+//   bool                     resubmit;         // false
+//   MulticastGroup_t         multicast_group;  // 0
+//   PortId_t                 egress_port;      // initial value is undefined
+// }
+
+    // initialize ingress output values before running control block
+    phv->get_field("psa_ingress_output_metadata.class_of_service").set(0);
+    phv->get_field("psa_ingress_output_metadata.clone").set(0);
+
+    // spec says initial value is undefined
+    // phv->get_field("psa_ingress_output_metadata.clone").set(0);
+
+    phv->get_field("psa_ingress_output_metadata.drop").set(1);
+    phv->get_field("psa_ingress_output_metadata.resubmit").set(0);
+    phv->get_field("psa_ingress_output_metadata.multicast_group").set(0);
+
+
+    // run p4 code in ingress control apply {} body
     ingress_mau->apply(packet.get());
+
+
 
     // Handleing multicast
     unsigned int mgid = 0u;
     if (phv->has_field("psa_ingress_output_metadata.multicast_group")) {
       Field &f_mgid = phv->get_field("psa_ingress_output_metadata.multicast_group");
       mgid = f_mgid.get_uint();
-      
-      const auto pre_out = pre->replicate({mgid});
-      auto packet_size = packet->get_register(PACKET_LENGTH_REG_IDX);
-      for(const auto &out : pre_out){
-        auto egress_port = out.egress_port;
-        std::unique_ptr<Packet> packet_copy = packet->clone_with_phv_ptr();
-        packet_copy->set_register(PACKET_LENGTH_REG_IDX, packet_size);
-        enqueue(egress_port, std::move(packet_copy));
+
+      if (mgid != 0) {
+          const auto pre_out = pre->replicate({mgid});
+          auto packet_size = packet->get_register(PACKET_LENGTH_REG_IDX);
+          for(const auto &out : pre_out){
+            auto egress_port = out.egress_port;
+            std::unique_ptr<Packet> packet_copy = packet->clone_with_phv_ptr();
+            packet_copy->set_register(PACKET_LENGTH_REG_IDX, packet_size);
+            enqueue(egress_port, std::move(packet_copy));
+          }
+          continue;
       }
-      continue;
     }
 
 
@@ -380,12 +440,14 @@ PsaSwitch::ingress_thread() {
     }
     Deparser *deparser = this->get_deparser("ingress_deparser");
     deparser->deparse(packet.get());
+    phv->get_field("psa_egress_parser_input_metadata.egress_port").set(egress_port);
     enqueue(egress_port, std::move(packet));
   }
 }
 
 void
 PsaSwitch::egress_thread(size_t worker_id) {
+    PHV *phv;
 
   while (1) {
     std::unique_ptr<Packet> packet;
@@ -400,6 +462,13 @@ PsaSwitch::egress_thread(size_t worker_id) {
 
     Parser *parser = this->get_parser("egress_parser");
     parser->parse(packet.get());
+
+    // passing matadata in egress
+
+
+
+
+
     Deparser *deparser = this->get_deparser("egress_deparser");
     Pipeline *egress_mau = this->get_pipeline("egress");
     egress_mau->apply(packet.get());

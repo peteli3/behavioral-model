@@ -123,15 +123,25 @@ class PsaSwitch : public Switch {
   static constexpr size_t nb_egress_threads = 4u;
   static packet_id_t packet_id;
 
-  enum PktInstanceType {
-    PKT_INSTANCE_TYPE_NORMAL,
-    PKT_INSTANCE_TYPE_INGRESS_CLONE,
-    PKT_INSTANCE_TYPE_EGRESS_CLONE,
-    PKT_INSTANCE_TYPE_COALESCED,
-    PKT_INSTANCE_TYPE_RECIRC,
-    PKT_INSTANCE_TYPE_REPLICATION,
-    PKT_INSTANCE_TYPE_RESUBMIT,
+  enum PsaPacketPath {
+    NORMAL,
+    NORMAL_UNICAST,
+    NORMAL_MULTICAST,
+    CLONE_I2E,
+    CLONE_E2E,
+    RESUBMIT,
+    RECIRCULATE
   };
+
+  // enum PktInstanceType {
+  //   PKT_INSTANCE_TYPE_NORMAL,
+  //   PKT_INSTANCE_TYPE_INGRESS_CLONE,
+  //   PKT_INSTANCE_TYPE_EGRESS_CLONE,
+  //   PKT_INSTANCE_TYPE_COALESCED,
+  //   PKT_INSTANCE_TYPE_RECIRC,
+  //   PKT_INSTANCE_TYPE_REPLICATION,
+  //   PKT_INSTANCE_TYPE_RESUBMIT,
+  // };
 
   struct EgressThreadMapper {
     explicit EgressThreadMapper(size_t nb_threads)
@@ -163,10 +173,10 @@ class PsaSwitch : public Switch {
   // TODO(antonin): switch to pass by value?
   void enqueue(port_t egress_port, std::unique_ptr<Packet> &&packet);
 
-  void copy_field_list_and_set_type(
-      const std::unique_ptr<Packet> &packet,
-      const std::unique_ptr<Packet> &packet_copy,
-      PktInstanceType copy_type, p4object_id_t field_list_id);
+  // void copy_field_list_and_set_type(
+  //     const std::unique_ptr<Packet> &packet,
+  //     const std::unique_ptr<Packet> &packet_copy,
+  //     PktInstanceType copy_type, p4object_id_t field_list_id);
 
   void check_queueing_metadata();
 

@@ -19,6 +19,9 @@
  */
 
 /* Switch instance */
+#include <iostream>
+#include <fstream>
+#include <string>
 
 #include <bm/PsaSwitch.h>
 #include <bm/bm_runtime/bm_runtime.h>
@@ -37,14 +40,19 @@ shared_ptr<PsaSwitchIf> get_handler(PsaSwitch *sw);
 
 int
 main(int argc, char* argv[]) {
+  std::cout << "-> PSA MAIN new psa switch\n";
   psa_switch = new PsaSwitch();
+  std::cout << "-> PSA MAIN new target parser basic\n";
   psa_switch_parser = new bm::TargetParserBasic();
+  std::cout << "-> PSA MAIN init from cmd line\n";
   psa_switch_parser->add_flag_option("enable-swap",
                                         "enable JSON swapping at runtime");
+  std::cout << "-> PSA ADD FLAG OPTION DONE\n";
   int status = psa_switch->init_from_command_line_options(
       argc, argv, psa_switch_parser);
-  if (status != 0) std::exit(status);
+  std::cout << "-> PSA MAIN init from cmd line EXIT STAT " << status << "\n";
 
+  std::cout << "-> PSA MAIN enable config swap\n";
   bool enable_swap_flag = false;
   if (psa_switch_parser->get_flag_option("enable-swap", &enable_swap_flag)
       != bm::TargetParserBasic::ReturnCode::SUCCESS)
