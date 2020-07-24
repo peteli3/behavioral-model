@@ -307,6 +307,7 @@ PsaSwitch::ingress_thread() {
        TODO */
 
     const Packet::buffer_state_t packet_in_state = packet->save_buffer_state();
+    auto ingress_packet_size = packet->get_register(PACKET_LENGTH_REG_IDX);
 
     Parser *parser = this->get_parser("ingress_parser");
     parser->parse(packet.get());
@@ -332,6 +333,7 @@ PsaSwitch::ingress_thread() {
     packet->reset_exit();
 
     // prioritize dropping if marked as such - do not move below other checks
+    // TODO make sure we still enforce cloning when pkt is dropped
     const auto &f_drop = phv->get_field("psa_ingress_output_metadata.drop");
     if (f_drop.get_int()) {
       BMLOG_DEBUG_PKT(*packet, "Dropping packet at the end of ingress");
@@ -358,10 +360,7 @@ PsaSwitch::ingress_thread() {
     auto &f_packet_path = phv->get_field("psa_egress_parser_input_metadata.packet_path");
 
     // handling multicast
-    unsigned int mgid = 0u;
-    const auto &f_mgid = phv->get_field("psa_ingress_output_metadata.multicast_group");
-    mgid = f_mgid.get_uint();
-
+    unsigned int mgid = phv->get_field("psa_ingress_output_metadata.multicast_group").get_uint();
     if (mgid != 0) {
       BMLOG_DEBUG_PKT(*packet,
                       "Multicast requested for packet with multicast group {}",
@@ -385,9 +384,44 @@ PsaSwitch::ingress_thread() {
       continue;
     }
 
-    const auto &f_egress_port = phv->get_field("psa_ingress_output_metadata.egress_port");
-    port_t egress_port = f_egress_port.get_uint();
-    BMLOG_DEBUG_PKT(*packet, "Egress port is {}", egress_port);
+    unsigned int clone = phv->get_field("psa_ingress_output_metadata.clone").get_uint();
+    if (clone) {
+        BMLOG_DEBUG_PKT(*packet, "Cloning packet");
+        unsigned int clone_session_id = phv->get_field("psa_ingress_output_metadata.clone_session_id").get_uint();
+
+        const Packet::buffer_state_t packet_out_state = packet->save_buffer_state();
+        packet->restore_buffer_state(packet_in_state);
+
+        std::unique_ptr<Packet> packet_copy = packet->clone_no_phv_ptr();
+        packet_copy->set_register(PACKET_LENGTH_REG_IDX, ingress_packet_size);
+        auto copy_phv = packet_copy->get_phv();
+        copy_phv->reset_metadata();
+        copy_phv->get_field("psa_egress_parser_input_metadata.packet_path").set(PACKET_PATH_CLONE_I2E);
+        copy_phv->get_field("psa_egress_input_metadata.packet_path").set(PACKET_PATH_CLONE_I2E);
+        BMLOG_DEBUG_PKT(*packet, "Cloning packet to clone session id {}", clone_session_id);
+
+        const auto pre_out = pre->replicate({clone_session_id});
+        auto &f_instance = phv->get_field("psa_egress_input_metadata.instance");
+        auto packet_size = packet_copy->get_register(PACKET_LENGTH_REG_IDX);
+        for(const auto &out : pre_out){
+          auto egress_port = out.egress_port;
+          auto instance = out.rid;
+          BMLOG_DEBUG_PKT(*packet_copy,
+                          "Replicating packet on port {} with instance {}",
+                          egress_port, instance);
+          f_instance.set(instance);
+          // TODO use appropriate enum member from JSON
+          f_packet_path.set(PACKET_PATH_NORMAL_MULTICAST);
+          std::unique_ptr<Packet> packet_copy_2 = packet_copy->clone_with_phv_ptr();
+          packet_copy->set_register(PACKET_LENGTH_REG_IDX, packet_size);
+          enqueue(egress_port, std::move(packet_copy_2));
+        }
+
+
+        packet->restore_buffer_state(packet_out_state);
+    }
+
+    port_t egress_port = phv->get_field("psa_ingress_output_metadata.egress_port").get_uint();
     // TODO use appropriate enum member from JSON
     f_packet_path.set(PACKET_PATH_NORMAL_UNICAST);
 
@@ -427,8 +461,8 @@ PsaSwitch::egress_thread(size_t worker_id) {
         phv->get_field("psa_egress_parser_input_metadata.egress_port"));
     phv->get_field("psa_egress_input_metadata.packet_path").set(
         phv->get_field("psa_egress_parser_input_metadata.packet_path"));
-    phv->get_field("psa_egress_input_metadata.egress_timestamp")
-        .set(get_ts().count());
+    phv->get_field("psa_egress_input_metadata.egress_timestamp").set(
+        get_ts().count());
     phv->get_field("psa_egress_input_metadata.parser_error").set(
         packet->get_error_code().get());
 
